@@ -12,7 +12,21 @@ export class Exchange {
 	#expires = Date.now();
 	#rateMapP;
 
-	async getRate(from, to) {
+	async exchange(amount, from, to, { locale = "en-US" } = {}) {
+		if (from !== "USD" && to !== "USD") {
+			throw new NotUSDError();
+		}
+		const rate = await this.#getRate(from, to);
+
+		const exchangedAmount = amount * rate;
+		const formatter = new Intl.NumberFormat(locale, {
+			style: "currency",
+			currency: to,
+		});
+		return formatter.format(exchangedAmount);
+	}
+
+	async #getRate(from, to) {
 		if (this.#isExpired) {
 			this.#refetch();
 		}
@@ -22,20 +36,6 @@ export class Exchange {
 			throw new InvalidExchangeError();
 		}
 		return rateMap.get(rateKey);
-	}
-
-	async exchange(amount, from, to, { locale = "en-US" } = {}) {
-		if (from !== "USD" && to !== "USD") {
-			throw new NotUSDError();
-		}
-		const rate = await this.getRate(from, to);
-
-		const exchangedAmount = amount * rate;
-		const formatter = new Intl.NumberFormat(locale, {
-			style: "currency",
-			currency: to,
-		});
-		return formatter.format(exchangedAmount);
 	}
 
 	#refetch() {
