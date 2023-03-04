@@ -18,6 +18,7 @@ if (Number.isNaN(port)) {
 const exchangeRate = new Exchange({ limitedToUsd: true });
 
 app.use(Express.json());
+
 app.use((req, res, next) => {
 	if (req.headers.authorization !== process.env.PASSWORD) {
 		res.status(403).send();
@@ -25,6 +26,7 @@ app.use((req, res, next) => {
 		next();
 	}
 });
+
 app.get("/rate", (req, res, next) => {
 	exchangeRate.getRate(req.query.from, req.query.to).then((rateData) => {
 		res.json({
@@ -35,6 +37,7 @@ app.get("/rate", (req, res, next) => {
 		});
 	}, next);
 });
+
 app.post("/exchange", (req, res, next) => {
 	exchangeRate
 		.exchange(req.body.amount, req.body.from, req.body.to)
@@ -42,6 +45,7 @@ app.post("/exchange", (req, res, next) => {
 			res.json({ result: exchangedAmount });
 		}, next);
 });
+
 app.post("/conv.json", (_req, res) => {
 	res.redirect(308, "/exchange");
 });
