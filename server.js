@@ -1,6 +1,11 @@
 import "dotenv/config";
 import Express from "express";
-import { Exchange, InvalidExchangeError, NotUSDError } from "./exchange.js";
+import {
+	Exchange,
+	NotUSDError,
+	ExchangeError,
+	ExchangeNotFoundError,
+} from "./exchange.js";
 
 const app = Express();
 const port = process.env.PORT ? Number(process.env.PORT) : 3000;
@@ -10,7 +15,7 @@ if (Number.isNaN(port)) {
 	process.exit(1);
 }
 
-const exchangeRate = new Exchange();
+const exchangeRate = new Exchange({ limitedToUsd: true });
 
 app.use(Express.json());
 app.use((req, res, next) => {
@@ -20,28 +25,42 @@ app.use((req, res, next) => {
 		next();
 	}
 });
-app.post("/conv.json", (req, res) => {
-	exchangeRate.exchange(req.body.amount, req.body.from, req.body.to).then(
-		(exchangedAmount) => {
+app.get("/rate", (req, res, next) => {
+	exchangeRate.getRate(req.query.from, req.query.to).then((rateData) => {
+		res.json({
+			from: rateData.from,
+			to: rateData.to,
+			rate: rateData.rate,
+			expiry: rateData.expiry,
+		});
+	}, next);
+});
+app.post("/exchange", (req, res, next) => {
+	exchangeRate
+		.exchange(req.body.amount, req.body.from, req.body.to)
+		.then((exchangedAmount) => {
 			res.json({ result: exchangedAmount });
-		},
-		(err) => {
-			if (err instanceof NotUSDError) {
-				res
-					.status(400)
-					.json({ error: "USD must be either the 'from' or 'to' currency." });
-				return;
-			}
-			if (err instanceof InvalidExchangeError) {
-				res.status(400).json({
-					error: `Cannot exchange '${req.body.from}' for '${req.body.to}'.`,
-				});
-				return;
-			}
-			res.status(500).json({ error: "Unknown error." });
-			console.error(err);
-		},
-	);
+		}, next);
+});
+app.post("/conv.json", (_req, res) => {
+	res.redirect(308, "/exchange");
+});
+
+app.use((err, _req, res, _next) => {
+	if (err instanceof NotUSDError) {
+		res.status(400).json({ error: err.message });
+		return;
+	}
+	if (err instanceof ExchangeNotFoundError) {
+		res.status(400).json({ error: err.message });
+		return;
+	}
+	if (err instanceof ExchangeError) {
+		res.status(400).json({ error: err.message });
+		return;
+	}
+	res.status(500).json({ error: "Unknown error." });
+	console.error(err);
 });
 
 app.listen(port, () => {
