@@ -16,6 +16,7 @@
 		"npm": "9.6.0"
 	},
 	"prettier": {
+		"printWidth": 120,
 		"trailingComma": "all",
 		"useTabs": true
 	}

@@ -1,11 +1,6 @@
 import "dotenv/config";
 import Express from "express";
-import {
-	Exchange,
-	NotUSDError,
-	ExchangeError,
-	ExchangeNotFoundError,
-} from "./exchange.js";
+import { Exchange, NotUSDError, ExchangeError, ExchangeNotFoundError } from "./exchange/exchange.js";
 
 const app = Express();
 const port = process.env.PORT ? Number(process.env.PORT) : 3000;
@@ -16,6 +11,9 @@ if (Number.isNaN(port)) {
 }
 
 const exchangeRate = new Exchange({ limitedToUsd: true });
+exchangeRate.on("fetching", ({ base }) => {
+	console.log(`Fetching '${base}'... ${new Date()}`);
+});
 
 app.use(Express.json());
 
@@ -39,11 +37,9 @@ app.get("/rate", (req, res, next) => {
 });
 
 app.post("/exchange", (req, res, next) => {
-	exchangeRate
-		.exchange(req.body.amount, req.body.from, req.body.to)
-		.then((exchangedAmount) => {
-			res.json({ result: exchangedAmount });
-		}, next);
+	exchangeRate.exchange(req.body.amount, req.body.from, req.body.to).then((exchangedAmount) => {
+		res.json({ result: exchangedAmount });
+	}, next);
 });
 
 app.post("/conv.json", (_req, res) => {
