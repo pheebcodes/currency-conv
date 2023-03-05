@@ -29,7 +29,7 @@ const rateValidator = z.object({
 	from: z.string().length(3),
 	to: z.string().length(3),
 });
-app.get("/rate", (req, res, next) => {
+app.get("/api/rate", (req, res, next) => {
 	const queryResult = rateValidator.safeParse(req.query);
 	if (!queryResult.success) {
 		throw new UsageError("The search parameters 'from' and 'to' should be valid, 3-letter string currency codes.");
@@ -40,7 +40,6 @@ app.get("/rate", (req, res, next) => {
 			from: exchangeRate.from,
 			to: exchangeRate.to,
 			rate: exchangeRate.rate,
-			expiry: exchangeRate.expiry,
 		});
 	}, next);
 });
@@ -50,7 +49,7 @@ const exchangeValidator = z.object({
 	to: z.string().length(3),
 	amount: z.coerce.number(),
 });
-app.post("/exchange", (req, res, next) => {
+app.post("/api/exchange", (req, res, next) => {
 	const bodyResult = exchangeValidator.safeParse(req.body);
 	if (!bodyResult.success) {
 		throw new UsageError(
@@ -59,12 +58,16 @@ app.post("/exchange", (req, res, next) => {
 	}
 	const { from, to, amount } = bodyResult.data;
 	exchangeRate.exchange(amount, from, to).then((exchangedAmount) => {
-		res.json({ result: exchangedAmount });
+		res.json({
+			from,
+			to,
+			result: exchangedAmount,
+		});
 	}, next);
 });
 
 app.post("/conv.json", (_req, res) => {
-	res.redirect(308, "/exchange");
+	res.redirect(308, "/api/exchange");
 });
 
 app.use((err, _req, res, _next) => {
