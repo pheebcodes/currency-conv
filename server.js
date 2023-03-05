@@ -3,19 +3,18 @@ import Express from "express";
 import { z } from "zod";
 import { Exchange, ExchangeRateError, ExchangeNotFoundError, InvalidCurrencyCodeError } from "./exchange/exchange.js";
 
-const app = Express();
-const port = process.env.PORT ? Number(process.env.PORT) : 3000;
-
-if (Number.isNaN(port)) {
-	console.error("Not a valid port.");
-	process.exit(1);
-}
-
 const exchangeRate = new Exchange(process.env.OPEN_EXCHANGE_RATES_APP_ID);
 exchangeRate.on("fetching", ({ base }) => {
 	console.log(`Fetching '${base}'... ${new Date()}`);
 });
 
+const app = Express();
+
+app.disable("x-powered-by");
+app.use((_req, res, next) => {
+	res.setHeader("x-powered-by", "currency-conv (https://github.com/pheebcodes/currency-conv)");
+	next();
+});
 app.use(Express.json());
 
 app.use((req, res, next) => {
@@ -89,6 +88,13 @@ app.use((err, _req, res, _next) => {
 	res.status(500).json({ error: "Unknown error." });
 	console.error(err);
 });
+
+const port = process.env.PORT ? Number(process.env.PORT) : 3000;
+
+if (Number.isNaN(port)) {
+	console.error("Not a valid port.");
+	process.exit(1);
+}
 
 app.listen(port, () => {
 	console.log(`currency-conv listening on port ${port}`);
