@@ -1,14 +1,61 @@
-export class ExchangeData {
+export class ExchangeRateStore {
+	#exchangeRates;
+	#expiry;
+
+	constructor(exchangeRates, expiry) {
+		this.#exchangeRates = new Map(Object.entries(exchangeRates));
+		this.#expiry = expiry;
+	}
+
+	get(from, to) {
+		const errors = [];
+
+		if (!this.isValidCurrencyCode(from)) {
+			errors.push(
+				new InvalidCurrencyCodeError(`Currency '${from}' (provided in the 'from' argument) is not a valid currency.`),
+			);
+		}
+
+		if (!this.isValidCurrencyCode(to)) {
+			errors.push(
+				new InvalidCurrencyCodeError(`Currency '${to}' (provided in the 'to' argument) is not a valid currency.`),
+			);
+		}
+
+		if (errors.length) {
+			throw new ExchangeRateError(
+				`Cannot exchange ${from} to ${to}.\n` + errors.map((e) => `\t${e.message}`).join("\n"),
+			);
+		}
+
+		let rate = 1;
+		if (from !== "USD") {
+			rate *= 1 / this.#exchangeRates.get(from);
+		}
+		if (to !== "USD") {
+			rate *= this.#exchangeRates.get(to);
+		}
+		return new ExchangeRate(from, to, rate);
+	}
+
+	isExpired() {
+		return this.#expiry < Date.now();
+	}
+
+	isValidCurrencyCode(currencyCode) {
+		return this.#exchangeRates.has(currencyCode);
+	}
+}
+
+export class ExchangeRate {
 	#from;
 	#to;
 	#rate;
-	#expiry;
 
-	constructor(from, to, rate, expiry) {
+	constructor(from, to, rate) {
 		this.#from = from;
 		this.#to = to;
 		this.#rate = rate;
-		this.#expiry = expiry;
 	}
 
 	get from() {
@@ -22,81 +69,7 @@ export class ExchangeData {
 	get rate() {
 		return this.#rate;
 	}
-
-	get expiry() {
-		return this.#expiry;
-	}
-
-	get inverse() {
-		return new ExchangeData(this.#to, this.#from, 1 / this.rate, this.expiry);
-	}
-
-	isExpired() {
-		return this.expiry < Date.now();
-	}
 }
 
-const exchangeDataStoreInternals = Symbol();
-export class ExchangeDataStore {
-	static #knownInvalidExchangeKeys = new Set();
-
-	#currencySymbolToName;
-	#exchangeDataByKey;
-
-	constructor(maybeExchangeData) {
-		const maybeInternals = maybeExchangeData?.[exchangeDataStoreInternals];
-		this.#currencySymbolToName = new Map(maybeInternals?.currencySymbolToName);
-		this.#exchangeDataByKey = new Map(maybeInternals?.exchangeDataByKey);
-	}
-
-	add(from, to, rate, expiry) {
-		const exchangeData = new ExchangeData(from, to, rate, expiry);
-		this.#addExchangeData(exchangeData);
-		this.#addExchangeData(exchangeData.inverse);
-	}
-
-	#addExchangeData(exchangeData) {
-		this.#exchangeDataByKey.set(this.#exchangeDataKeyFor(exchangeData.from, exchangeData.to), exchangeData);
-	}
-
-	get(from, to) {
-		const key = this.#exchangeDataKeyFor(from, to);
-		return this.#exchangeDataByKey.get(key);
-	}
-
-	addInvalidExchange(from, to) {
-		ExchangeDataStore.#knownInvalidExchangeKeys.add(this.#exchangeDataKeyFor(from, to));
-		ExchangeDataStore.#knownInvalidExchangeKeys.add(this.#exchangeDataKeyFor(to, from));
-	}
-
-	isInvalidExchange(from, to) {
-		return ExchangeDataStore.#knownInvalidExchangeKeys.has(this.#exchangeDataKeyFor(from, to));
-	}
-
-	isCurrencySymbol(symbol) {
-		return this.#currencySymbolToName.has(symbol);
-	}
-
-	getCurrencyName(symbol) {
-		return this.#currencySymbolToName.get(symbol);
-	}
-
-	#exchangeDataKeyFor(from, to) {
-		return `${from}-${to}`;
-	}
-
-	get [exchangeDataStoreInternals]() {
-		return {
-			currencySymbolToName: this.#currencySymbolToName,
-			exchangeDataByKey: this.#exchangeDataByKey,
-		};
-	}
-
-	static initialize(currencySymbolToName) {
-		return new ExchangeDataStore({
-			[exchangeDataStoreInternals]: {
-				currencySymbolToName,
-			},
-		});
-	}
-}
+export class InvalidCurrencyCodeError extends Error {}
+export class ExchangeRateError extends Error {}

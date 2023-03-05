@@ -1,6 +1,6 @@
 import "dotenv/config";
 import Express from "express";
-import { Exchange, NotUSDError, ExchangeError, ExchangeNotFoundError } from "./exchange/exchange.js";
+import { Exchange, ExchangeRateError, ExchangeNotFoundError, InvalidCurrencyCodeError } from "./exchange/exchange.js";
 
 const app = Express();
 const port = process.env.PORT ? Number(process.env.PORT) : 3000;
@@ -26,12 +26,12 @@ app.use((req, res, next) => {
 });
 
 app.get("/rate", (req, res, next) => {
-	exchangeRate.getRate(req.query.from, req.query.to).then((rateData) => {
+	exchangeRate.getRate(req.query.from, req.query.to).then((exchangeRate) => {
 		res.json({
-			from: rateData.from,
-			to: rateData.to,
-			rate: rateData.rate,
-			expiry: rateData.expiry,
+			from: exchangeRate.from,
+			to: exchangeRate.to,
+			rate: exchangeRate.rate,
+			expiry: exchangeRate.expiry,
 		});
 	}, next);
 });
@@ -47,17 +47,16 @@ app.post("/conv.json", (_req, res) => {
 });
 
 app.use((err, _req, res, _next) => {
-	if (err instanceof NotUSDError) {
-		res.status(400).json({ error: err.message });
-		return;
-	}
 	if (err instanceof ExchangeNotFoundError) {
 		res.status(400).json({ error: err.message });
 		return;
 	}
-	if (err instanceof ExchangeError) {
+	if (err instanceof ExchangeRateError) {
 		res.status(400).json({ error: err.message });
 		return;
+	}
+	if (err instanceof InvalidCurrencyCodeError) {
+		res.status(400).json({ error: err.message });
 	}
 	res.status(500).json({ error: "Unknown error." });
 	console.error(err);
