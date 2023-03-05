@@ -1,5 +1,6 @@
 import "dotenv/config";
 import Express from "express";
+import { z } from "zod";
 import { Exchange, ExchangeRateError, ExchangeNotFoundError, InvalidCurrencyCodeError } from "./exchange/exchange.js";
 
 const app = Express();
@@ -25,8 +26,17 @@ app.use((req, res, next) => {
 	}
 });
 
+const rateValidator = z.object({
+	from: z.string().length(3),
+	to: z.string().length(3),
+});
 app.get("/rate", (req, res, next) => {
-	exchangeRate.getRate(req.query.from, req.query.to).then((exchangeRate) => {
+	const queryResult = rateValidator.safeParse(req.query);
+	if (!queryResult.success) {
+		throw new UsageError("The search parameters 'from' and 'to' should be valid, 3-letter string currency codes.");
+	}
+	const { from, to } = queryResult.data;
+	exchangeRate.getRate(from, to).then((exchangeRate) => {
 		res.json({
 			from: exchangeRate.from,
 			to: exchangeRate.to,
@@ -36,8 +46,21 @@ app.get("/rate", (req, res, next) => {
 	}, next);
 });
 
+const exchangeValidator = z.object({
+	from: z.string().length(3),
+	to: z.string().length(3),
+	amount: z.coerce.number(),
+});
 app.post("/exchange", (req, res, next) => {
-	exchangeRate.exchange(req.body.amount, req.body.from, req.body.to).then((exchangedAmount) => {
+	const bodyResult = exchangeValidator.safeParse(req.body);
+	if (!bodyResult.success) {
+		console.log(bodyResult.error);
+		throw new UsageError(
+			"The body parameters 'from' and 'to' should be valid, 3-letter string currency codes, and 'amount' should be a number.",
+		);
+	}
+	const { from, to, amount } = bodyResult.data;
+	exchangeRate.exchange(amount, from, to).then((exchangedAmount) => {
 		res.json({ result: exchangedAmount });
 	}, next);
 });
@@ -57,6 +80,11 @@ app.use((err, _req, res, _next) => {
 	}
 	if (err instanceof InvalidCurrencyCodeError) {
 		res.status(400).json({ error: err.message });
+		return;
+	}
+	if (err instanceof UsageError) {
+		res.status(400).json({ error: err.message });
+		return;
 	}
 	res.status(500).json({ error: "Unknown error." });
 	console.error(err);
@@ -65,3 +93,5 @@ app.use((err, _req, res, _next) => {
 app.listen(port, () => {
 	console.log(`currency-conv listening on port ${port}`);
 });
+
+class UsageError extends Error {}
