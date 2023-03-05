@@ -10,7 +10,7 @@ if (Number.isNaN(port)) {
 	process.exit(1);
 }
 
-const exchangeRate = new Exchange({ limitedToUsd: true });
+const exchangeRate = new Exchange(process.env.OPEN_EXCHANGE_RATES_APP_ID, { limitedToUsd: true });
 exchangeRate.on("fetching", ({ base }) => {
 	console.log(`Fetching '${base}'... ${new Date()}`);
 });

@@ -30,26 +30,27 @@ export class ExchangeNotFoundError extends Error {
 }
 
 export class Exchange {
-	static #api = Got.extend({
-		prefixUrl: "https://openexchangerates.org/api",
-		searchParams: {
-			app_id: process.env.OPEN_EXCHANGE_APP_ID,
-		},
-	});
-
+	#api;
 	#limitedToUsd;
 	#rateExpiry;
+	#exchangeDataStoreP;
 
 	#ee = new EventEmitter();
 
-	#exchangeDataStoreP = Exchange.#api
-		.get("currencies.json")
-		.json()
-		.then((result) => ExchangeDataStore.initialize(new Map(Object.entries(result))));
-
-	constructor({ limitedToUsd = false, rateExpiry = 1000 * 60 * 60 } = {}) {
+	constructor(openExchangeAppId, { limitedToUsd = false, rateExpiry = 1000 * 60 * 60 } = {}) {
+		this.#api = Got.extend({
+			prefixUrl: "https://openexchangerates.org/api",
+			searchParams: {
+				app_id: openExchangeAppId,
+			},
+		});
 		this.#limitedToUsd = limitedToUsd;
 		this.#rateExpiry = rateExpiry;
+
+		this.#exchangeDataStoreP = this.#api
+			.get("currencies.json")
+			.json()
+			.then((result) => ExchangeDataStore.initialize(new Map(Object.entries(result))));
 	}
 
 	async exchange(amount, from, to, { locale = "en-US" } = {}) {
@@ -110,7 +111,7 @@ export class Exchange {
 		this.#ee.emit("fetching", { base });
 
 		const currentExchangeDataStoreP = this.#exchangeDataStoreP;
-		this.#exchangeDataStoreP = Exchange.#api
+		this.#exchangeDataStoreP = this.#api
 			.get("latest.json", {
 				searchParams: {
 					base,
