@@ -23,3 +23,5 @@ export class Expiring {
 		this.#value = next;
 	}
 }
+
+export class ExpiredError extends Error {}

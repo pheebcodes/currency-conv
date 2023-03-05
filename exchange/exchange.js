@@ -1,7 +1,7 @@
 import Got from "got";
 import { EventEmitter } from "events";
 import { ExchangeRateStore } from "./exchange-data.js";
-import { Expiring } from "../utils/expiring.js";
+import { ExpiredError, Expiring } from "../utils/expiring.js";
 
 export { InvalidCurrencyCodeError, ExchangeRateError } from "./exchange-data.js";
 
@@ -43,17 +43,21 @@ export class Exchange {
 	}
 
 	#getExchangeRateStore() {
-		if (!this.#expiringExchangeRateStore.isExpired()) {
+		try {
 			return this.#expiringExchangeRateStore.get();
-		}
+		} catch (err) {
+			if (!(err instanceof ExpiredError)) {
+				throw err;
+			}
 
-		this.#ee.emit("fetching", { base: "USD" });
-		const next = this.#api
-			.get("latest.json", { searchParams: { base: "USD" } })
-			.json()
-			.then(async (result) => new ExchangeRateStore(result.rates));
-		this.#expiringExchangeRateStore.renew(next);
-		return next;
+			this.#ee.emit("fetching", { base: "USD" });
+			const next = this.#api
+				.get("latest.json", { searchParams: { base: "USD" } })
+				.json()
+				.then(async (result) => new ExchangeRateStore(result.rates));
+			this.#expiringExchangeRateStore.renew(next);
+			return next;
+		}
 	}
 
 	on(event, fn) {
