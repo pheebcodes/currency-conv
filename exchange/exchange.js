@@ -94,7 +94,7 @@ export class Exchange {
 		}
 
 		let exchangeData = exchangeDataStore.get(from, to);
-		if (exchangeData === undefined || exchangeData.expiry.getTime() < Date.now()) {
+		if (exchangeData === undefined || exchangeData.isExpired()) {
 			exchangeDataStore = await this.#fetch(this.#limitedToUsd ? "USD" : from);
 			exchangeData = exchangeDataStore.get(from, to);
 		}

@@ -30,6 +30,10 @@ export class ExchangeData {
 	get inverse() {
 		return new ExchangeData(this.#to, this.#from, 1 / this.rate, this.expiry);
 	}
+
+	isExpired() {
+		return this.expiry < Date.now();
+	}
 }
 
 const exchangeDataStoreInternals = Symbol();
