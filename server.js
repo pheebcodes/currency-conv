@@ -53,7 +53,6 @@ const exchangeValidator = z.object({
 app.post("/exchange", (req, res, next) => {
 	const bodyResult = exchangeValidator.safeParse(req.body);
 	if (!bodyResult.success) {
-		console.log(bodyResult.error);
 		throw new UsageError(
 			"The body parameters 'from' and 'to' should be valid, 3-letter string currency codes, and 'amount' should be a number.",
 		);
@@ -86,7 +85,7 @@ app.use((err, _req, res, _next) => {
 		return;
 	}
 	res.status(500).json({ error: "Unknown error." });
-	console.error(err);
+	console.error("Encountered unknown error", err);
 });
 
 const port = process.env.PORT ? Number(process.env.PORT) : 3000;
