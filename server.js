@@ -17,13 +17,15 @@ app.use((_req, res, next) => {
 });
 app.use(Express.json());
 
-app.use((req, res, next) => {
-	if (req.headers.authorization !== process.env.PASSWORD) {
-		res.status(403).send();
-	} else {
-		next();
-	}
-});
+if (process.env.AUTH_OFF !== "true") {
+	app.use((req, res, next) => {
+		if (req.headers.authorization !== process.env.PASSWORD) {
+			res.status(403).send();
+		} else {
+			next();
+		}
+	});
+}
 
 const rateValidator = z.object({
 	from: z.string().length(3),
