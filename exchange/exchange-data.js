@@ -28,13 +28,7 @@ export class ExchangeRateStore {
 			);
 		}
 
-		let rate = 1;
-		if (from !== "USD") {
-			rate *= 1 / this.#exchangeRates.get(from);
-		}
-		if (to !== "USD") {
-			rate *= this.#exchangeRates.get(to);
-		}
+		const rate = (1 / this.#exchangeRates.get(from)) * this.#exchangeRates.get(to);
 		return new ExchangeRate(from, to, rate);
 	}
 
