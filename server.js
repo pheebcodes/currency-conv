@@ -66,10 +66,6 @@ app.post("/api/exchange", (req, res, next) => {
 	}, next);
 });
 
-app.post("/conv.json", (_req, res) => {
-	res.redirect(308, "/api/exchange");
-});
-
 app.use((err, _req, res, _next) => {
 	if (err instanceof ExchangeNotFoundError) {
 		res.status(400).json({ error: err.message });
