@@ -3,8 +3,8 @@ import Express from "express";
 import { z } from "zod";
 import { Exchange, ExchangeRateError, ExchangeNotFoundError, InvalidCurrencyCodeError } from "./exchange/exchange.js";
 
-const exchangeRate = new Exchange(process.env.OPEN_EXCHANGE_RATES_APP_ID);
-exchangeRate.on("fetching", ({ base }) => {
+const exchange = new Exchange(process.env.OPEN_EXCHANGE_RATES_APP_ID);
+exchange.on("fetching", ({ base }) => {
 	console.log(`Fetching '${base}'... ${new Date()}`);
 });
 
@@ -37,7 +37,7 @@ app.get("/api/rate", (req, res, next) => {
 		throw new UsageError("The search parameters 'from' and 'to' should be valid, 3-letter string currency codes.");
 	}
 	const { from, to } = queryResult.data;
-	exchangeRate.getRate(from, to).then((exchangeRate) => {
+	exchange.getRate(from, to).then((exchangeRate) => {
 		res.json({
 			from: exchangeRate.from,
 			to: exchangeRate.to,
@@ -59,11 +59,13 @@ app.post("/api/exchange", (req, res, next) => {
 		);
 	}
 	const { from, to, amount } = bodyResult.data;
-	exchangeRate.exchange(amount, from, to).then((exchangedAmount) => {
+	exchange.exchange(amount, from, to).then((exchangeResult) => {
 		res.json({
-			from,
-			to,
-			result: exchangedAmount,
+			from: exchangeResult.from,
+			to: exchangeResult.to,
+			originalAmount: exchangeResult.formatOriginalAmount(),
+			amount: exchangeResult.formatAmount(),
+			result: exchangeResult.formatAmount(),
 		});
 	}, next);
 });

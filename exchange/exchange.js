@@ -21,15 +21,9 @@ export class Exchange {
 		this.#expiringExchangeRateStore = new Expiring(expiresIn);
 	}
 
-	async exchange(amount, from, to, { locale = "en-US" } = {}) {
+	async exchange(amount, from, to) {
 		const exchangeRate = await this.getRate(from, to);
-		const exchangedAmount = amount * exchangeRate.rate;
-		const formatter = new Intl.NumberFormat(locale, {
-			style: "currency",
-			currency: to,
-		});
-
-		return formatter.format(exchangedAmount);
+		return new ExchangeResult(exchangeRate, amount);
 	}
 
 	async getRate(from, to) {
@@ -66,6 +60,53 @@ export class Exchange {
 
 	off(event, fn) {
 		this.#ee.off(event, fn);
+	}
+}
+
+class ExchangeResult {
+	#exchangeRate;
+	#originalAmount;
+
+	constructor(exchangeRate, originalAmount) {
+		this.#exchangeRate = exchangeRate;
+		this.#originalAmount = originalAmount;
+	}
+
+	formatAmount(locale = "en-US") {
+		return this.#format(locale, this.to, this.amount);
+	}
+
+	formatOriginalAmount(locale) {
+		return this.#format(locale, this.from, this.originalAmount);
+	}
+
+	#format(locale, currency, amount) {
+		const formatter = new Intl.NumberFormat(locale, {
+			style: "currency",
+			currency,
+		});
+
+		return formatter.format(amount);
+	}
+
+	get amount() {
+		return this.#exchangeRate.rate * this.#originalAmount;
+	}
+
+	get originalAmount() {
+		return this.#originalAmount;
+	}
+
+	get from() {
+		return this.#exchangeRate.from;
+	}
+
+	get to() {
+		return this.#exchangeRate.to;
+	}
+
+	get rate() {
+		return this.#exchangeRate.rate;
 	}
 }
 
