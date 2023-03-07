@@ -1,10 +1,8 @@
 export class ExchangeRateStore {
 	#exchangeRates;
-	#expiry;
 
-	constructor(exchangeRates, expiry) {
+	constructor(exchangeRates = {}) {
 		this.#exchangeRates = new Map(Object.entries(exchangeRates));
-		this.#expiry = expiry;
 	}
 
 	get(from, to) {
@@ -30,10 +28,6 @@ export class ExchangeRateStore {
 
 		const rate = (1 / this.#exchangeRates.get(from)) * this.#exchangeRates.get(to);
 		return new ExchangeRate(from, to, rate);
-	}
-
-	isExpired() {
-		return this.#expiry < Date.now();
 	}
 
 	isValidCurrencyCode(currencyCode) {
