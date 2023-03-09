@@ -3,6 +3,9 @@ import Express from "express";
 import { z } from "zod";
 import { Exchange, ExchangeRateError, ExchangeNotFoundError, InvalidCurrencyCodeError } from "./exchange/exchange.js";
 
+class UsageError extends Error {}
+class AuthenticationError extends Error {}
+
 const exchange = new Exchange(process.env.OPEN_EXCHANGE_RATES_APP_ID);
 exchange.on("fetching", ({ base }) => {
 	console.log(`Fetching '${base}'... ${new Date()}`);
@@ -20,7 +23,7 @@ app.use(Express.json());
 if (process.env.AUTH_OFF !== "true") {
 	app.use((req, res, next) => {
 		if (req.headers.authorization !== process.env.PASSWORD) {
-			res.status(403).send();
+			next(new AuthenticationError());
 		} else {
 			next();
 		}
@@ -70,25 +73,33 @@ app.post("/api/exchange", (req, res, next) => {
 	}, next);
 });
 
+const errorResponseMap = {
+	[ExchangeNotFoundError](err) {
+		return { status: 400, json: { error: err.message } };
+	},
+	[ExchangeRateError](err) {
+		return { status: 400, json: { error: err.message } };
+	},
+	[InvalidCurrencyCodeError](err) {
+		return { status: 400, json: { error: err.message } };
+	},
+	[UsageError](err) {
+		return { status: 400, json: { error: err.message } };
+	},
+	[AuthenticationError](_err) {
+		return { status: 401, json: { error: "Invalid authorization." } };
+	},
+};
 app.use((err, _req, res, _next) => {
-	if (err instanceof ExchangeNotFoundError) {
-		res.status(400).json({ error: err.message });
-		return;
+	const maybeErrorResponseFunction = errorResponseMap[err.constructor];
+	let result;
+	if (maybeErrorResponseFunction) {
+		result = maybeErrorResponseFunction(err);
+	} else {
+		result = { status: 500, json: { error: "Unknown error." } };
+		console.error("Unknown error responding to request: ", err);
 	}
-	if (err instanceof ExchangeRateError) {
-		res.status(400).json({ error: err.message });
-		return;
-	}
-	if (err instanceof InvalidCurrencyCodeError) {
-		res.status(400).json({ error: err.message });
-		return;
-	}
-	if (err instanceof UsageError) {
-		res.status(400).json({ error: err.message });
-		return;
-	}
-	res.status(500).json({ error: "Unknown error." });
-	console.error("Encountered unknown error", err);
+	res.status(result.status).json(result.json);
 });
 
 const port = process.env.PORT ? Number(process.env.PORT) : 3000;
@@ -101,5 +112,3 @@ if (Number.isNaN(port)) {
 app.listen(port, () => {
 	console.log(`currency-conv listening on port ${port}`);
 });
-
-class UsageError extends Error {}
