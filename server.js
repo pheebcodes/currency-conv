@@ -2,6 +2,7 @@ import "dotenv/config";
 import Express from "express";
 import { z } from "zod";
 import { Exchange, ExchangeRateError, ExchangeNotFoundError, InvalidCurrencyCodeError } from "./exchange/exchange.js";
+import { MultiMethod } from "./utils/multi-method.js";
 
 class UsageError extends Error {}
 class AuthenticationError extends Error {}
@@ -73,33 +74,20 @@ app.post("/api/exchange", (req, res, next) => {
 	}, next);
 });
 
-const errorResponseMap = {
-	[ExchangeNotFoundError](err) {
-		return { status: 400, json: { error: err.message } };
-	},
-	[ExchangeRateError](err) {
-		return { status: 400, json: { error: err.message } };
-	},
-	[InvalidCurrencyCodeError](err) {
-		return { status: 400, json: { error: err.message } };
-	},
-	[UsageError](err) {
-		return { status: 400, json: { error: err.message } };
-	},
-	[AuthenticationError](_err) {
-		return { status: 401, json: { error: "Invalid authorization." } };
-	},
-};
+const multi = new MultiMethod();
+multi.impl(ExchangeNotFoundError, (err) => ({ status: 400, json: { error: err.message } }));
+multi.impl(ExchangeRateError, (err) => ({ status: 400, json: { error: err.message } }));
+multi.impl(InvalidCurrencyCodeError, (err) => ({ status: 400, json: { error: err.message } }));
+multi.impl(UsageError, (err) => ({ status: 400, json: { error: err.message } }));
+multi.impl(AuthenticationError, (_err) => ({ status: 400, json: { error: "Invalid authentication." } }));
 app.use((err, _req, res, _next) => {
-	const maybeErrorResponseFunction = errorResponseMap[err.constructor];
-	let result;
-	if (maybeErrorResponseFunction) {
-		result = maybeErrorResponseFunction(err);
-	} else {
-		result = { status: 500, json: { error: "Unknown error." } };
-		console.error("Unknown error responding to request: ", err);
+	try {
+		const ret = multi.invoke(err);
+		res.status(ret.status).json(ret.json);
+	} catch (e) {
+		res.status(500).json({ error: "Unknown error." });
+		console.error("Unknown error responding to request:", err);
 	}
-	res.status(result.status).json(result.json);
 });
 
 const port = process.env.PORT ? Number(process.env.PORT) : 3000;
