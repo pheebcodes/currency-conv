@@ -1,0 +1,24 @@
+{
+	"type": "module",
+	"name": "@pheebcodes/currency-conv",
+	"version": "1.0.0",
+	"main": "server.js",
+	"scripts": {
+		"start": "node server.js"
+	},
+	"dependencies": {
+		"dotenv": "^16.0.3",
+		"express": "^4.18.2",
+		"got": "^12.5.3",
+		"zod": "^3.21.0"
+	},
+	"volta": {
+		"node": "18.16.0",
+		"npm": "9.6.7"
+	},
+	"prettier": {
+		"printWidth": 120,
+		"trailingComma": "all",
+		"useTabs": true
+	}
+}
