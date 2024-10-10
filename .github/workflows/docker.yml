@@ -7,7 +7,7 @@ on:
       - main
 
 env:
-  REGISTRY: ghcr.io
+  REGISTRY: git.nas.phoebe.codes
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
