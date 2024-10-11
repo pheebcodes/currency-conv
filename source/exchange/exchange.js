@@ -3,7 +3,10 @@ import { EventEmitter } from "events";
 import { ExchangeRateStore } from "./exchange-data.js";
 import { ExpiredError, Expiring } from "../utils/expiring.js";
 
-export { InvalidCurrencyCodeError, ExchangeRateError } from "./exchange-data.js";
+export {
+	InvalidCurrencyCodeError,
+	ExchangeRateError,
+} from "./exchange-data.js";
 
 export class Exchange {
 	#api;
@@ -73,7 +76,10 @@ class ExchangeResult {
 	}
 
 	get amount() {
-		return new CurrencyValue(this.#exchangeRate.rate * this.#originalAmount, this.to);
+		return new CurrencyValue(
+			this.#exchangeRate.rate * this.#originalAmount,
+			this.to
+		);
 	}
 
 	get originalAmount() {
