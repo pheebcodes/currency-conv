@@ -53,7 +53,7 @@ app.get(
 app.post(
 	"/api/exchange",
 	zValidator(
-		"query",
+		"json",
 		z.object({
 			from: z.string().length(3),
 			to: z.string().length(3),
@@ -62,7 +62,7 @@ app.post(
 		})
 	),
 	async (c) => {
-		const { from, to, amount, locale } = c.req.valid("query");
+		const { from, to, amount, locale } = c.req.valid("json");
 		const exchangeResult = await exchange.exchange(amount, from, to);
 		return c.json({
 			from: exchangeResult.from,
