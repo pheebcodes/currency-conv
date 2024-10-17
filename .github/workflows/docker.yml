@@ -6,10 +6,6 @@ on:
     branches:
       - main
 
-env:
-  REGISTRY: git.nas.phoebe.codes
-  IMAGE_NAME: ${{ github.repository }}
-
 jobs:
   push_to_registry:
     runs-on: ubuntu-latest
@@ -29,7 +25,7 @@ jobs:
       - id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ vars.REGISTRY }}/${{ github.repository }}
           tags: |
             type=sha
             type=raw,value=latest,enable={{is_default_branch}}
