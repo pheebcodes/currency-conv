@@ -15,7 +15,7 @@ services:
       - SYS_MODULE
 
   currency-conv:
-    image: git.nas.phoebe.codes/kaijubee/currency-conv:latest
+    image: git.ferret-tyrannosaurus.ts.net/kaijubee/currency-conv:latest
     restart: always
     network_mode: service:tailscale
     user: 1001:100
