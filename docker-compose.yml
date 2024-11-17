@@ -12,3 +12,8 @@ services:
       - traefik.http.routers.currency-conv.rule=Host(`currency-conv.nas.phoebe.codes`)
       - traefik.http.routers.currency-conv.entrypoints=websecure
       - traefik.http.services.currency-conv.loadbalancer.server.port=3000
+
+networks:
+  default:
+    name: proxy
+    external: true
