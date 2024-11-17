@@ -1,27 +1,14 @@
 services:
-  tailscale:
-    image: tailscale/tailscale:latest
-    restart: always
-    volumes:
-      - /mnt/user/appdata/currency-conv/tailscale:/var/lib/tailscale
-      - /dev/net/tun:/dev/net/tun
-    environment:
-      - TS_AUTHKEY=${TS_AUTHKEY}
-      - TS_HOSTNAME=currency-conv
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TS_SERVE_CONFIG=/var/lib/tailscale/serve.json
-    cap_add:
-      - NET_ADMIN
-      - SYS_MODULE
-
   currency-conv:
     image: git.ferret-tyrannosaurus.ts.net/kaijubee/currency-conv:latest
     restart: always
-    network_mode: service:tailscale
     user: 1001:100
     read_only: true
     environment:
       - OPEN_EXCHANGE_RATES_APP_ID=${OPEN_EXCHANGE_RATES_APP_ID}
       - PASSWORD=${PASSWORD}
-    depends_on:
-      - tailscale
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.currency-conv.rule=Host(`currency-conv.nas.phoebe.codes`)
+      - traefik.http.routers.currency-conv.entrypoints=websecure
+      - traefik.http.services.currency-conv.loadbalancer.server.port=3000
