@@ -1,6 +1,6 @@
 services:
   currency-conv:
-    image: git.ferret-tyrannosaurus.ts.net/kaijubee/currency-conv:latest
+    image: git.nas.phoebe.codes/kaijubee/currency-conv:latest
     restart: always
     user: 1001:100
     read_only: true
